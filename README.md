@@ -34,7 +34,7 @@ It provides clear, beginner-friendly notebooks showing how SHAP helps explain bo
 ## ⚙️ How to Run
 1. Clone this repository  
    ```bash
-   git clone https://github.com/your-username/Explainable-AI-with-SHAP.git
+   git clone https://github.com/wittyswayam/Explainable-AI-with-SHAP.git
    cd Explainable-AI-with-SHAP
    ```
 
@@ -70,3 +70,4 @@ Each notebook builds upon the previous one:
 - `intro/` helps you grasp the **theory and visualization basics**  
 - `classification/` shows **how to interpret decision-based models**  
 - `regression/` extends these ideas to **continuous prediction tasks**  
+
