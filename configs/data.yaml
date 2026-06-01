@@ -1,0 +1,44 @@
+# configs/data.yaml
+dataset:
+  name: bank-customer-churn
+  version: "1.0"
+  source: kaggle
+  kaggle_path: shubhammeshram579/bank-customer-churn-prediction
+
+features:
+  numerical_cols:
+    - creditscore
+    - age
+    - balance
+    - estimatedsalary
+  categorical_cols:
+    - gender
+    - geography
+  target_col: exited
+  drop_cols:
+    - rownumber
+    - customerid
+    - surname
+
+preprocessing:
+  scaler: minmax
+  encoder: onehot
+  handle_unknown: ignore
+  sparse_output: false
+  set_config_output: pandas
+
+validation:
+  max_missing_rate: 0.05
+  min_rows: 1000
+  expected_columns:
+    - creditscore
+    - geography
+    - gender
+    - age
+    - tenure
+    - balance
+    - numofproducts
+    - hascrcard
+    - isactivemember
+    - estimatedsalary
+    - exited

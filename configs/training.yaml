@@ -1,0 +1,34 @@
+# configs/training.yaml
+experiment:
+  name: xai-platform
+  tags:
+    project: explainable-ai
+    version: "2.0"
+
+model:
+  type: voting_classifier        # voting_classifier | xgboost | lightgbm | random_forest
+  n_estimators: 100
+  learning_rate: 0.1
+  max_depth: 6
+  class_weight: balanced
+
+training:
+  task: classification           # classification | regression
+  cv_folds: 5
+  test_size: 0.2
+  random_state: 42
+  metric: roc_auc
+  optuna_trials: 30
+  optuna_timeout_seconds: 600
+  n_jobs: -1
+
+shap:
+  background_sample_size: 200
+  explainer_type: auto
+  compute_interactions: false
+  check_additivity: true
+
+mlflow:
+  tracking_uri: http://localhost:5000
+  model_registry_name: xai-churn-model
+  artifact_path: model

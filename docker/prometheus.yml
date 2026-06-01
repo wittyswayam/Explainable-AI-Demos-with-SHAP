@@ -1,0 +1,20 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    service: xai-platform
+    environment: development
+
+scrape_configs:
+  - job_name: xai-api
+    static_configs:
+      - targets: ["xai-api:8000"]
+    metrics_path: /metrics
+
+  - job_name: redis
+    static_configs:
+      - targets: ["redis:6379"]
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

@@ -1,0 +1,17 @@
+apiVersion: v2
+name: xai-platform
+description: Enterprise Explainable AI Platform — SHAP-powered model explanation service
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+home: https://github.com/your-org/Explainable-AI-Demos-with-SHAP
+sources:
+  - https://github.com/your-org/Explainable-AI-Demos-with-SHAP
+maintainers:
+  - name: XAI Platform Team
+keywords:
+  - explainability
+  - xai
+  - shap
+  - mlops
+  - fastapi

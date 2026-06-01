@@ -1,0 +1,177 @@
+site_name: "Explainable AI Demos with SHAP"
+site_description: "Enterprise-grade SHAP-powered model explanation platform — documentation"
+site_author: "XAI Platform Team"
+site_url: "https://your-org.github.io/Explainable-AI-Demos-with-SHAP"
+repo_url: "https://github.com/your-org/Explainable-AI-Demos-with-SHAP"
+repo_name: "your-org/Explainable-AI-Demos-with-SHAP"
+edit_uri: "edit/main/docs/"
+
+copyright: "Copyright © 2024 XAI Platform Team — MIT License"
+
+# ── Theme ─────────────────────────────────────────────────────────────────────
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.annotate
+    - content.code.copy
+    - content.tabs.link
+    - toc.integrate
+  icon:
+    repo: fontawesome/brands/github
+  logo: assets/logo.png
+  favicon: assets/favicon.ico
+
+# ── Navigation ────────────────────────────────────────────────────────────────
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Quick Start: getting-started/quickstart.md
+      - Installation: getting-started/installation.md
+      - Configuration: getting-started/configuration.md
+      - Docker Setup: getting-started/docker.md
+  - Architecture:
+      - System Overview: architecture/overview.md
+      - SHAP Engine: architecture/shap-engine.md
+      - LIME Engine: architecture/lime-engine.md
+      - Counterfactual Engine: architecture/counterfactual.md
+      - API Layer: architecture/api.md
+      - MLOps Stack: architecture/mlops.md
+  - Research:
+      - SHAP Theory: research/shap-theory.md
+      - LIME Theory: research/lime-theory.md
+      - Explainer Comparison: research/explainer-comparison.md
+      - Benchmarks: research/benchmarks.md
+      - Fairness Analysis: research/fairness.md
+  - Notebooks:
+      - Introduction to SHAP: notebooks/01-intro.md
+      - Classification SHAP: notebooks/02-classification.md
+      - Regression SHAP: notebooks/03-regression.md
+      - Background Data Analysis: notebooks/04-background.md
+  - API Reference:
+      - REST API: api-reference/rest-api.md
+      - Python SDK: api-reference/python-sdk.md
+      - SHAPEngine: api-reference/shap-engine.md
+      - LIMEEngine: api-reference/lime-engine.md
+      - DriftDetector: api-reference/drift-detector.md
+  - MLOps:
+      - Training Pipeline: mlops/training.md
+      - DVC Pipelines: mlops/dvc.md
+      - Airflow DAGs: mlops/airflow.md
+      - MLflow Integration: mlops/mlflow.md
+      - Model Registry: mlops/registry.md
+      - Drift Detection: mlops/drift.md
+  - Deployment:
+      - Docker: deployment/docker.md
+      - Kubernetes: deployment/kubernetes.md
+      - Helm Charts: deployment/helm.md
+      - Terraform (AWS): deployment/terraform.md
+      - CI/CD: deployment/cicd.md
+  - Monitoring:
+      - Prometheus Metrics: monitoring/prometheus.md
+      - Grafana Dashboards: monitoring/grafana.md
+      - Alert Rules: monitoring/alerts.md
+      - Observability Guide: monitoring/observability.md
+  - Security:
+      - Authentication: security/auth.md
+      - Rate Limiting: security/rate-limiting.md
+      - Security Architecture: security/architecture.md
+  - Model Documentation:
+      - Model Card: model_card.md
+      - Data Card: data_card.md
+  - Contributing:
+      - Developer Guide: contributing/developer-guide.md
+      - Code Standards: contributing/code-standards.md
+      - Testing Guide: contributing/testing.md
+      - Pull Request Process: contributing/pull-requests.md
+  - Changelog: changelog.md
+
+# ── Plugins ───────────────────────────────────────────────────────────────────
+plugins:
+  - search:
+      lang: en
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_signature: true
+            show_signature_annotations: true
+            members_order: source
+            filters:
+              - "!^_"
+  - gen-files:
+      scripts:
+        - docs/gen_ref_pages.py
+  - literate-nav:
+      nav_file: SUMMARY.md
+  - minify:
+      minify_html: true
+
+# ── Markdown extensions ───────────────────────────────────────────────────────
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.arithmatex:
+      generic: true
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+# ── Extra ─────────────────────────────────────────────────────────────────────
+extra:
+  version:
+    provider: mike
+    default: stable
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/your-org/Explainable-AI-Demos-with-SHAP
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/xai-platform-sdk
+  analytics:
+    provider: google
+    property: G-XXXXXXXXXX
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+extra_css:
+  - stylesheets/extra.css

@@ -1,0 +1,272 @@
+groups:
+  # ─── API Performance Alerts ───────────────────────────────────────────────
+  - name: xai_api_performance
+    interval: 30s
+    rules:
+      - alert: XAIHighErrorRate
+        expr: |
+          (
+            sum(rate(xai_api_requests_total{status=~"5.."}[5m]))
+            /
+            sum(rate(xai_api_requests_total[5m]))
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          team: ml-platform
+          service: xai-api
+        annotations:
+          summary: "XAI API error rate is critically high"
+          description: >
+            The XAI Platform API error rate is {{ printf "%.1f" $value | humanizePercentage }}
+            over the last 5 minutes, exceeding the 5% critical threshold.
+            Check pod logs: kubectl logs -l app=xai-api -n xai-platform --tail=100
+          runbook_url: "https://wiki.internal/runbooks/xai-high-error-rate"
+          dashboard_url: "http://grafana:3000/d/xai-platform-ops"
+
+      - alert: XAIHighLatencyP99
+        expr: |
+          histogram_quantile(
+            0.99,
+            sum(rate(xai_api_request_duration_seconds_bucket[5m])) by (le, endpoint)
+          ) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+          team: ml-platform
+          service: xai-api
+        annotations:
+          summary: "XAI API p99 latency exceeds 2s SLA"
+          description: >
+            Endpoint {{ $labels.endpoint }} has p99 latency of
+            {{ printf "%.2f" $value }}s, exceeding the 2s SLA threshold.
+            This may indicate SHAP computation overload or Redis cache failures.
+
+      - alert: XAICriticalLatencyP99
+        expr: |
+          histogram_quantile(
+            0.99,
+            sum(rate(xai_api_request_duration_seconds_bucket[5m])) by (le)
+          ) > 5.0
+        for: 2m
+        labels:
+          severity: critical
+          team: ml-platform
+          service: xai-api
+        annotations:
+          summary: "XAI API p99 latency critically high (>5s)"
+          description: >
+            Global API p99 latency is {{ printf "%.2f" $value }}s.
+            Immediate investigation required. Check SHAP engine thread pool and Redis.
+
+      - alert: XAIAPIDown
+        expr: up{job="xai-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: ml-platform
+          service: xai-api
+          page: "true"
+        annotations:
+          summary: "XAI API is unreachable"
+          description: >
+            The XAI Platform API Prometheus target is down.
+            All explanation and prediction endpoints are unavailable.
+
+      - alert: XAILowRequestRate
+        expr: sum(rate(xai_api_requests_total[10m])) < 0.1
+        for: 15m
+        labels:
+          severity: warning
+          team: ml-platform
+          service: xai-api
+        annotations:
+          summary: "Abnormally low request rate on XAI API"
+          description: >
+            XAI API has received fewer than 0.1 req/s for 15 minutes.
+            May indicate upstream routing failure or client misconfiguration.
+
+  # ─── Model Drift Alerts ───────────────────────────────────────────────────
+  - name: xai_model_drift
+    interval: 5m
+    rules:
+      - alert: XAIFeatureDriftHigh
+        expr: xai_drift_psi_score > 0.20
+        for: 0m
+        labels:
+          severity: warning
+          team: ml-platform
+          type: drift
+        annotations:
+          summary: "Significant data drift detected on feature {{ $labels.feature }}"
+          description: >
+            Feature {{ $labels.feature }} has PSI score {{ printf "%.3f" $value }},
+            exceeding the 0.20 high-drift threshold.
+            The model may need retraining. Triggering Airflow retraining DAG check.
+          runbook_url: "https://wiki.internal/runbooks/xai-drift-response"
+
+      - alert: XAIFeatureDriftCritical
+        expr: xai_drift_psi_score > 0.30
+        for: 0m
+        labels:
+          severity: critical
+          team: ml-platform
+          type: drift
+          page: "true"
+        annotations:
+          summary: "Critical data drift on {{ $labels.feature }} — retrain immediately"
+          description: >
+            Feature {{ $labels.feature }} has PSI score {{ printf "%.3f" $value }},
+            indicating critical distribution shift.
+            Automated decisions from this model should be reviewed manually until retraining completes.
+
+      - alert: XAIModelAccuracyDegradation
+        expr: xai_model_roc_auc < 0.80
+        for: 10m
+        labels:
+          severity: critical
+          team: ml-platform
+          type: model_quality
+        annotations:
+          summary: "Model ROC-AUC dropped below 0.80 threshold"
+          description: >
+            Model {{ $labels.model_id }} has ROC-AUC of {{ printf "%.4f" $value }},
+            below the minimum acceptable threshold of 0.80.
+            Suspend automated decisions and initiate emergency retraining.
+
+  # ─── Explanation Quality Alerts ───────────────────────────────────────────
+  - name: xai_explanation_quality
+    interval: 1m
+    rules:
+      - alert: XAIAdditivityFailureRate
+        expr: |
+          (
+            sum(rate(xai_explanation_additivity_failures_total[10m]))
+            /
+            sum(rate(xai_explanations_total[10m]))
+          ) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          team: ml-platform
+          type: explanation_quality
+        annotations:
+          summary: "SHAP additivity failures above 1% threshold"
+          description: >
+            {{ printf "%.1f" $value | humanizePercentage }} of SHAP explanations
+            are failing the additivity check (base_value + Σφᵢ ≈ f(x)).
+            This suggests a model or SHAP version mismatch. Check explainer configuration.
+
+      - alert: XAIExplanationComputationSlow
+        expr: |
+          histogram_quantile(
+            0.95,
+            rate(xai_explanation_duration_ms_bucket[5m])
+          ) > 3000
+        for: 5m
+        labels:
+          severity: warning
+          team: ml-platform
+          service: xai-api
+        annotations:
+          summary: "SHAP explanation p95 computation time > 3s"
+          description: >
+            SHAP computation p95 is {{ printf "%.0f" $value }}ms.
+            Consider increasing SHAP thread pool size or using TreeExplainer
+            where the model type supports it.
+
+  # ─── Infrastructure Alerts ────────────────────────────────────────────────
+  - name: xai_infrastructure
+    interval: 30s
+    rules:
+      - alert: XAIRedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: warning
+          team: ml-platform
+          service: redis
+        annotations:
+          summary: "Redis cache is unavailable"
+          description: >
+            Redis is unreachable. The XAI API will fall back to uncached operation,
+            which may cause significant latency increases for repeated explanation requests.
+
+      - alert: XAIHighMemoryUsage
+        expr: |
+          container_memory_working_set_bytes{container="xai-api"}
+          / container_spec_memory_limit_bytes{container="xai-api"} > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          team: ml-platform
+          service: xai-api
+        annotations:
+          summary: "XAI API pod memory usage above 85%"
+          description: >
+            Container {{ $labels.pod }} is using {{ printf "%.0f" $value | humanizePercentage }}
+            of its memory limit. Risk of OOMKill. Consider reducing MAX_BATCH_SIZE
+            or increasing memory limits.
+
+      - alert: XAIPodRestartLoop
+        expr: |
+          increase(kube_pod_container_status_restarts_total{
+            container="xai-api"
+          }[15m]) > 3
+        for: 0m
+        labels:
+          severity: critical
+          team: ml-platform
+          service: xai-api
+          page: "true"
+        annotations:
+          summary: "XAI API pod is restart-looping"
+          description: >
+            Pod {{ $labels.pod }} has restarted {{ $value }} times in the last 15 minutes.
+            Likely OOMKill or application crash. Check: kubectl describe pod {{ $labels.pod }}
+
+      - alert: XAIDeploymentReplicasLow
+        expr: |
+          kube_deployment_status_replicas_available{
+            deployment="xai-api"
+          } < 2
+        for: 3m
+        labels:
+          severity: critical
+          team: ml-platform
+          service: xai-api
+        annotations:
+          summary: "XAI API deployment has fewer than 2 available replicas"
+          description: >
+            Only {{ $value }} replicas are available for the XAI API deployment.
+            Minimum SLA requires 2 replicas. Check HPA and node capacity.
+
+  # ─── MLflow Alerts ────────────────────────────────────────────────────────
+  - name: xai_mlflow
+    interval: 5m
+    rules:
+      - alert: XAIMLflowDown
+        expr: up{job="mlflow"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          team: ml-platform
+          service: mlflow
+        annotations:
+          summary: "MLflow tracking server is down"
+          description: >
+            MLflow is unreachable. Experiment tracking and model registry
+            operations will fail. Training pipelines may be disrupted.
+
+      - alert: XAINoModelInProduction
+        expr: mlflow_model_versions_by_stage{stage="Production"} == 0
+        for: 0m
+        labels:
+          severity: critical
+          team: ml-platform
+          type: model_registry
+        annotations:
+          summary: "No model in Production stage"
+          description: >
+            There are no models in MLflow Production stage.
+            The XAI API cannot serve predictions. Promote a Staging model immediately.

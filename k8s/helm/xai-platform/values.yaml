@@ -1,0 +1,135 @@
+# ─── XAI Platform Helm Values ─────────────────────────────────────────────────
+
+replicaCount: 3
+
+image:
+  repository: ghcr.io/your-org/xai-platform
+  pullPolicy: IfNotPresent
+  tag: "2.0.0"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: "xai-platform"
+
+# ── Service Account ────────────────────────────────────────────────────────────
+serviceAccount:
+  create: true
+  annotations: {}
+  name: "xai-api-sa"
+
+# ── Pod Security ───────────────────────────────────────────────────────────────
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+# ── Service ────────────────────────────────────────────────────────────────────
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/metrics"
+    prometheus.io/port: "8000"
+
+# ── Ingress ────────────────────────────────────────────────────────────────────
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+  hosts:
+    - host: xai.your-domain.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: xai-tls-secret
+      hosts:
+        - xai.your-domain.com
+
+# ── Resources ──────────────────────────────────────────────────────────────────
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "2000m"
+    memory: "4Gi"
+
+# ── Autoscaling ────────────────────────────────────────────────────────────────
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# ── Health checks ──────────────────────────────────────────────────────────────
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: 8000
+  initialDelaySeconds: 30
+  periodSeconds: 15
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: 8000
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  failureThreshold: 3
+
+# ── Environment ────────────────────────────────────────────────────────────────
+env:
+  ENVIRONMENT: production
+  LOG_LEVEL: INFO
+  WORKERS: "4"
+  MLFLOW_TRACKING_URI: http://mlflow-svc:5000
+  MAX_BATCH_SIZE: "512"
+
+# ── Secrets (reference existing K8s secrets) ──────────────────────────────────
+secretRef: xai-secrets
+
+# ── Persistence ────────────────────────────────────────────────────────────────
+persistence:
+  enabled: false
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 10Gi
+
+# ── Topology spread ────────────────────────────────────────────────────────────
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: DoNotSchedule
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: xai-platform
+
+# ── Node selector, tolerations ────────────────────────────────────────────────
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# ── Redis (subchart) ───────────────────────────────────────────────────────────
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+
+# ── MLflow (separate deployment) ──────────────────────────────────────────────
+mlflow:
+  enabled: false   # Deploy separately in production

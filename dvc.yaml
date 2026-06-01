@@ -1,0 +1,83 @@
+stages:
+  # ── Stage 1: Data ingestion ──────────────────────────────────────────────
+  ingest:
+    cmd: python scripts/ingest_data.py
+    deps:
+      - scripts/ingest_data.py
+    params:
+      - configs/data.yaml:
+          - dataset.name
+          - dataset.version
+    outs:
+      - data/raw/churn_dataset.csv
+      - data/raw/california_housing.csv
+
+  # ── Stage 2: Data validation ─────────────────────────────────────────────
+  validate:
+    cmd: python scripts/validate_data.py
+    deps:
+      - scripts/validate_data.py
+      - data/raw/churn_dataset.csv
+      - data/raw/california_housing.csv
+    outs:
+      - data/processed/validation_report.json
+
+  # ── Stage 3: Feature engineering ─────────────────────────────────────────
+  featurise:
+    cmd: python scripts/featurise.py
+    deps:
+      - scripts/featurise.py
+      - data/raw/churn_dataset.csv
+    params:
+      - configs/features.yaml:
+          - numerical_cols
+          - categorical_cols
+    outs:
+      - data/processed/X_train.parquet
+      - data/processed/X_test.parquet
+      - data/processed/y_train.parquet
+      - data/processed/y_test.parquet
+
+  # ── Stage 4: Training ─────────────────────────────────────────────────────
+  train:
+    cmd: python scripts/train.py
+    deps:
+      - scripts/train.py
+      - data/processed/X_train.parquet
+      - data/processed/y_train.parquet
+      - src/pipelines/training_pipeline.py
+    params:
+      - configs/training.yaml:
+          - model.n_estimators
+          - model.learning_rate
+          - training.cv_folds
+          - training.optuna_trials
+    outs:
+      - data/processed/trained_model.pkl
+    metrics:
+      - data/processed/metrics.json:
+          cache: false
+
+  # ── Stage 5: Evaluation ───────────────────────────────────────────────────
+  evaluate:
+    cmd: python scripts/evaluate.py
+    deps:
+      - scripts/evaluate.py
+      - data/processed/trained_model.pkl
+      - data/processed/X_test.parquet
+      - data/processed/y_test.parquet
+    outs:
+      - data/processed/evaluation_report.json
+
+  # ── Stage 6: SHAP explanation generation ─────────────────────────────────
+  explain:
+    cmd: python scripts/generate_shap_explanations.py
+    deps:
+      - scripts/generate_shap_explanations.py
+      - data/processed/trained_model.pkl
+      - data/processed/X_train.parquet
+      - data/processed/X_test.parquet
+      - src/explainability/shap_engine.py
+    outs:
+      - data/processed/shap_values.npz
+      - data/processed/shap_importance.json
