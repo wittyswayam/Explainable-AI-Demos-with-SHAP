@@ -71,7 +71,7 @@ The stack built around that idea includes:
 Clone the repo and install dependencies:
 
 ```bash
-git clone https://github.com/your-org/Explainable-AI-Demos-with-SHAP.git
+git clone https://github.com/wittyswayam/Explainable-AI-Demos-with-SHAP.git
 cd Explainable-AI-Demos-with-SHAP
 pip install -r requirements.txt
 ```
